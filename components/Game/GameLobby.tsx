@@ -20,7 +20,7 @@ export function GameLobby() {
         removePlayer,
     } = useGame();
 
-    const { payEntryFee, isPending, isConfirming, isSuccess, isError } = useContract();
+    const { payEntryFee, isPending, isConfirming, isSuccess, error } = useContract();
     const [copied, setCopied] = useState(false);
     const [hasPaid, setHasPaid] = useState(false);
     const [paymentAttempted, setPaymentAttempted] = useState(false);
@@ -172,7 +172,7 @@ export function GameLobby() {
                     </motion.div>
                 )}
 
-                {isError && !hasPaid && (
+                {error && !hasPaid && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
