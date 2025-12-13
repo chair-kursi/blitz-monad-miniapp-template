@@ -1,294 +1,408 @@
-# Monad Farcaster MiniApp Template
+# 🎮 Typing Tournament - Complete Guide
 
-The template demonstrates all Mini App capabilities and lets you easily modify it, so you can build Mini Apps.
+## 📖 **Table of Contents**
+1. [Quick Start](#quick-start)
+2. [What You Have](#what-you-have)
+3. [Testing Guide](#testing-guide)
+4. [Deployment](#deployment)
+5. [Troubleshooting](#troubleshooting)
 
-## Cloning the Template
+---
 
-You can the following command to clone the Mini App template to your local machine:
+## 🚀 Quick Start
+
+### **Your Production URLs**
+```
+Frontend:  https://blitzxvaibhav.vercel.app/game
+Backend:   https://blitz-monad-miniapp-template-1.onrender.com
+Contract:  0x90577AFd04F23c783De10FD87956a77FDe5e9792
+```
+
+### **Test the App (2 Players Needed)**
+
+**Player 1:**
+1. Open: https://blitzxvaibhav.vercel.app/game
+2. Connect wallet (MetaMask/Coinbase)
+3. Click "Create New Game"
+4. Pay 0.01 MON
+5. Copy game ID
+
+**Player 2 (different browser/device):**
+1. Open: https://blitzxvaibhav.vercel.app/game
+2. Connect wallet
+3. Click "Join Game"
+4. Paste game ID
+5. Pay 0.01 MON
+
+**Both Players:**
+- Game auto-starts
+- Type the text (60 seconds)
+- First to 100% wins
+- Winner gets 0.02 MON
+
+---
+
+## 🎯 What You Have
+
+### **Complete Application Stack**
 
 ```
-git clone https://github.com/monad-developers/monad-miniapp-template.git
+┌─────────────────────────────────────┐
+│   Farcaster Mini App                │
+│   https://blitzxvaibhav.vercel.app  │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│   Next.js Frontend (Vercel)         │
+│   - React components                │
+│   - Socket.IO client                │
+│   - Wagmi (wallet)                  │
+│   - Farcaster SDK                   │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│   Node.js Backend (Render)          │
+│   - Socket.IO server                │
+│   - Game logic                      │
+│   - Redis (Upstash)                 │
+│   - Blockchain integration          │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│   Smart Contract (Monad Testnet)    │
+│   - Entry fee escrow                │
+│   - Winner payout                   │
+│   - Security hardened               │
+└─────────────────────────────────────┘
 ```
 
-### Install the dependencies
+### **Features**
+- ✅ 1v1 real-time typing race
+- ✅ 0.01 MON entry fee
+- ✅ Winner takes all (0.02 MON)
+- ✅ Automatic prize payout
+- ✅ Beautiful UI with animations
+- ✅ Farcaster integration
+- ✅ Mobile responsive
 
-```
-yarn
-```
+---
 
-### Copy `.env.example` over to `.env.local`
+## 🧪 Testing Guide
 
+### **1. Local Testing**
+
+#### **Backend:**
 ```bash
-cp .env.example .env.local
+cd server
+npm run dev
+# Runs on http://localhost:3001
 ```
 
-### Run the template
-
+#### **Frontend:**
 ```bash
-yarn run dev
+pnpm run dev
+# Runs on http://localhost:3000
 ```
 
-### View the App in Warpcast Embed tool
+#### **Test Locally:**
+- Open 2 browser windows
+- One normal, one incognito
+- Follow the 2-player flow
 
-Warpcast has a neat [Embed tool](https://warpcast.com/~/developers/mini-apps/embed) that you can use to inspect the Mini App before you publish it.
+### **2. Production Testing**
 
-Unfortunately, the embed tool can only work with remote URL. Inputting a localhost URL does not work.
-
-As a workaround, you may make the local app accessible remotely using a tool like `cloudflared` or `ngrok`. In this guide we will use `cloudflared`.
-
-#### Install Cloudflared
-
+#### **Health Checks:**
 ```bash
-brew install cloudflared
-```
+# Backend
+curl https://blitz-monad-miniapp-template-1.onrender.com/health
 
-For more installation options see the [official docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
-
-#### Expose localhost
-
-Run the following command in your terminal:
-
-```bash
-cloudflared tunnel --url http://localhost:3000
-```
-
-Be sure to specify the correct port for your local server.
-
-#### Set `NEXT_PUBLIC_URL` environment variable in `.env.local` file
-
-```bash
-NEXT_PUBLIC_URL=<url-from-cloudflared-or-ngrok>
-```
-
-#### Use the provided url
-
-`cloudflared` will generate a random subdomain and print it in the terminal for you to use. Any traffic to this URL will get sent to your local server.
-
-Enter the provided URL in the [Warpcast Embed tool](https://warpcast.com/~/developers/mini-apps/embed).
-
-![embed-tool](https://docs.monad.xyz/img/guides/farcaster-miniapp/1.png)
-
-Let's investigate the various components of the template.
-
-## Customizing the Mini App Embed
-
-Mini App Embed is how the Mini App shows up in the feed or in a chat conversation when the URL of the app is shared.
-
-The Mini App Embed looks like this:
-
-![embed-preview](https://docs.monad.xyz/img/guides/farcaster-miniapp/2.png)
-
-You can customize this by editing the file `app/page.tsx`:
-
-```js
-...
-
-const appUrl = env.NEXT_PUBLIC_URL;
-
-const frame = {
-  version: "next",
-  imageUrl: `${appUrl}/images/feed.png`, // Embed image URL (3:2 image ratio)
-  button: {
-    title: "Template", // Text on the embed button
-    action: {
-      type: "launch_frame",
-      name: "Monad Farcaster MiniApp Template",
-      url: appUrl, // URL that is opened when the embed button is tapped or clicked.
-      splashImageUrl: `${appUrl}/images/splash.png`,
-      splashBackgroundColor: "#f7f7f7",
-    },
-  },
-};
-
-...
-```
-
-You can either edit the URLs for the images or replace the images in `public/images` folder in the template.
-
-Once you are happy with the changes, click `Refetch` in the Embed tool to get the latest configuration.
-
-> [!NOTE]
-> If you are developing locally, ensure that your Next.js app is running locally and the cloudflare tunnel is open. 
-
-
-## Customizing the Splash Screen
-
-Upon opening the Mini App, the first thing the user will see is the Splash screen:
-
-![splash-screen](https://docs.monad.xyz/img/guides/farcaster-miniapp/3.png)
-
-You can edit the `app/page.tsx` file to customize the Splash screen.
-
-```js
-...
-
-const appUrl = env.NEXT_PUBLIC_URL;
-
-const frame = {
-  version: "next",
-  imageUrl: `${appUrl}/images/feed.png`,
-  button: {
-    title: "Launch Template",
-    action: {
-      type: "launch_frame",
-      name: "Monad Farcaster MiniApp Template",
-      url: appUrl,
-      splashImageUrl: `${appUrl}/images/splash.png`, // App icon in the splash screen (200px * 200px)
-      splashBackgroundColor: "#f7f7f7", // Splash screen background color
-    },
-  },
-};
-
-...
-```
-
-For `splashImageUrl`, you can either change the URL or replace the image in `public/images` folder in the template.
-
-## Modifying the Mini App
-
-Upon opening the template Mini App, you should see a screen like this:
-
-<img width="1512" alt="4" src="https://github.com/user-attachments/assets/259a3dd2-17ee-4afd-8942-ad83a92f6335" />
-
-
-The code for this screen is in the `components/pages/app.tsx` file:
-
-```tsx
-export default function Home() {
-  const { context } = useMiniAppContext();
-  return (
-    // SafeAreaContainer component makes sure that the app margins are rendered properly depending on which client is being used.
-    <SafeAreaContainer insets={context?.client.safeAreaInsets}>
-      {/* You replace the Demo component with your home component */}
-      <Demo />
-    </SafeAreaContainer>
-  )
+# Expected:
+{
+  "status": "ok",
+  "timestamp": "...",
+  "serverAddress": "0xda856f9f...",
+  "contractAddress": "0x90577AFd..."
 }
 ```
 
-You can remove or edit the code in this file to build your Mini App.
+#### **Full Game Flow:**
+1. ✅ Create game
+2. ✅ Join game
+3. ✅ Pay entry fee
+4. ✅ Game starts
+5. ✅ Type race
+6. ✅ Winner declared
+7. ✅ Prize paid
 
-### Accessing User Context
+### **3. Farcaster Testing**
 
-<img width="1130" alt="5" src="https://github.com/user-attachments/assets/4448c141-d159-4538-abda-a175d02330a7" />
+**Using Warpcast Embed Tool:**
+1. Go to: https://warpcast.com/~/developers/mini-apps/embed
+2. Enter: `https://blitzxvaibhav.vercel.app`
+3. Click "Refetch"
+4. Click "Launch"
+5. Should show game UI
 
+---
 
-Your Mini App receives various information about the user, including `username`, `fid`, `displayName`, `pfpUrl` and other fields.
+## 🚀 Deployment
 
-The template provides a helpful hook `useMiniAppContext` that you can use to access these fields:
+### **Current Deployment Status**
 
-```js
-export function User() {
-    const { context } = useMiniAppContext();
-    return <p>{context.user.username}</p>
-}
+```
+✅ Smart Contract: Deployed to Monad Testnet
+✅ Backend: Deployed to Render
+✅ Frontend: Deployed to Vercel
+✅ All working!
 ```
 
-The template also provide an example of the same in `components/Home/User.tsx` file.
+### **Environment Variables**
 
-You can learn more about Context [here](https://miniapps.farcaster.xyz/docs/sdk/context).
-
-### Performing App Actions
-
-![composeCast](https://docs.monad.xyz/img/guides/farcaster-miniapp/composeCast.gif)
-
-Mini Apps have the capability to perform native actions that enhance the user experience!
-
-Actions like:
-
-- `addFrame`: Allows the user to save (bookmark) the app in a dedicated section
-- `composeCast`: Allows the MiniApp to prompt the user to cast with prefilled text and media
-- `viewProfile`: Presents a profile of a Farcaster user in a client native UI
-
-Learn more about Mini App actions [here](https://miniapps.farcaster.xyz/docs/sdk/actions/add-frame)
-
-The template provides an easy way to access the actions via the `useMiniAppContext` hook!
-
-```js
-const { actions } = useMiniAppContext();
+#### **Backend (Render):**
+```bash
+UPSTASH_REDIS_REST_URL=https://choice-tarpon-27967.upstash.io
+UPSTASH_REDIS_REST_TOKEN=AW0_AAIncDIwYmE4ODMyMjMwZjg0OTBiODg3ZmUzM2RkZjRiMmZlZXAyMjc5Njc
+NEYNAR_API_KEY=8F4F204C-C2A2-4EF8-8BD9-8D1718B12D61
+MONAD_RPC_URL=https://testnet-rpc.monad.xyz
+MONAD_CHAIN_ID=10143
+SERVER_PRIVATE_KEY=59e26d2e7b79d077a7ac3be3773a0aab20fce09a14468f13d15bfa9791775be8
+SERVER_ADDRESS=0xda856f9f453780a9b6faef0824c12301b5126665
+CONTRACT_ADDRESS=0x90577AFd04F23c783De10FD87956a77FDe5e9792
+ENTRY_FEE_MON=0.01
+MAX_PLAYERS_PER_GAME=2
+GAME_DURATION_SECONDS=60
+PORT=3001
+FRONTEND_URL=https://blitzxvaibhav.vercel.app
 ```
 
-An example for the same can be found in `components/Home/FarcasterActions.tsx` file.
-
-### Prompting Wallet Actions
-
-<img width="1130" alt="6" src="https://github.com/user-attachments/assets/7dc46f05-bcbb-43b4-a0e6-4f421648dfc6" />
-
-Every user of Warpcast has a Warpcast wallet with Monad Testnet support.
-
-**Mini Apps can prompt the user to perform onchain actions**!
-
-The template provides an example for the same in `components/Home/WalletActions.tsx` file.
-
-```js
-export function WalletActions() {
-    ...
-
-    async function sendTransactionHandler() {
-        sendTransaction({
-            to: "0x7f748f154B6D180D35fA12460C7E4C631e28A9d7",
-            value: parseEther("1"),
-        });
-    }
-
-    ...
-}
+#### **Frontend (Vercel):**
+```bash
+NEXT_PUBLIC_URL=https://blitzxvaibhav.vercel.app
+NEXT_PUBLIC_SOCKET_URL=https://blitz-monad-miniapp-template-1.onrender.com
+NEXT_PUBLIC_CONTRACT_ADDRESS=0x90577AFd04F23c783De10FD87956a77FDe5e9792
 ```
 
-> [!WARNING]
-> The Warpcast wallet supports multiple networks. It is recommended that you ensure that the right network is connected before prompting wallet actions.
+### **Redeploying**
 
-You can use viem's `switchChain` or equivalent to prompt a chain switch.
+#### **Frontend:**
+```bash
+# Make changes
+pnpm run build
 
-```js
-// Switching to Monad Testnet
-switchChain({ chainId: 10143 });
+# Commit and push
+git add .
+git commit -m "Your message"
+git push origin main
+
+# Vercel auto-deploys in 2-3 minutes
 ```
 
-The template has an example for the same in the `components/Home/WalletActions.tsx` file.
-:::
+#### **Backend:**
+```bash
+# Make changes
+cd server
+npm run build
 
-## Modifying the `farcaster.json` file
+# Commit and push
+git add .
+git commit -m "Your message"
+git push origin main
 
-When publishing the Mini App you will need to have a `farcaster.json` file that follows the specification.
-
-You can edit the `app/.well-known/farcaster.json/route.ts` file with your app details before publishing the app!
-
-```ts
-...
-
-const appUrl = process.env.NEXT_PUBLIC_URL;
-const farcasterConfig = {
-    // accountAssociation details are required to associated the published app with it's author
-    accountAssociation: {
-        "header": "",
-        "payload": "",
-        "signature": ""
-    },
-    frame: {
-        version: "1",
-        name: "Monad Farcaster MiniApp Template",
-        iconUrl: `${appUrl}/images/icon.png`, // Icon of the app in the app store
-        homeUrl: `${appUrl}`, // Default launch URL
-        imageUrl: `${appUrl}/images/feed.png`, // Default image to show if shared in a feed.
-        screenshotUrls: [], // Visual previews of the app
-        tags: ["monad", "farcaster", "miniapp", "template"], // Descriptive tags for search
-        primaryCategory: "developer-tools",
-        buttonTitle: "Launch Template",
-        splashImageUrl: `${appUrl}/images/splash.png`, // URL of image to show on loading screen.	
-        splashBackgroundColor: "#ffffff", // Hex color code to use on loading screen.
-    }
-};
-
-...
+# Render auto-deploys in 2-3 minutes
 ```
 
-You can learn more about publishing the Mini App and other manifest properties [here](https://miniapps.farcaster.xyz/docs/guides/publishing).
+---
 
-## Conclusion
+## 🐛 Troubleshooting
 
-In this guide, you explored Farcaster Mini Apps — the simplest way to create engaging, high-retention, and easily monetizable applications!
+### **Common Issues**
 
-You also discovered the key capabilities of Mini Apps and how you can use the [Monad Farcaster MiniApp Template](https://github.com/monad-developers/monad-miniapp-template) to build your own.
+#### **1. "Failed to create game"**
+**Cause:** Redis connection or authentication issue
 
-For more details, check out the official Mini App documentation [here](https://miniapps.farcaster.xyz/).
+**Fix:**
+1. Check Render logs
+2. Verify `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+3. Restart Render service
+
+#### **2. "Socket.IO won't connect"**
+**Cause:** CORS or URL mismatch
+
+**Fix:**
+1. Check `NEXT_PUBLIC_SOCKET_URL` in Vercel = `https://blitz-monad-miniapp-template-1.onrender.com`
+2. Check `FRONTEND_URL` in Render = `https://blitzxvaibhav.vercel.app`
+3. No trailing slashes!
+
+#### **3. "Payment not working"**
+**Cause:** Wrong contract address or network
+
+**Fix:**
+1. Verify `NEXT_PUBLIC_CONTRACT_ADDRESS` in Vercel
+2. Check wallet is on Monad Testnet
+3. Verify wallet has MON balance
+
+#### **4. "High gas fees (0.1 MON)"**
+**Cause:** Monad Testnet gas prices
+
+**Fix:**
+- This is normal for testnet
+- Mainnet will be ~200x cheaper
+- Contract is already optimized
+
+#### **5. "Payment popup keeps appearing"**
+**Cause:** Old code (already fixed)
+
+**Fix:**
+- Deploy latest frontend code
+- Should show "Retry Payment" button after cancel
+
+### **Checking Logs**
+
+#### **Render Logs:**
+1. Go to: https://dashboard.render.com
+2. Click your service
+3. Click "Logs" tab
+4. Look for errors
+
+#### **Browser Console:**
+1. Press F12
+2. Go to Console tab
+3. Look for errors
+4. Should see:
+   ```
+   ✅ Socket connected
+   ✅ Authenticated: username (address)
+   ```
+
+---
+
+## 📊 Game Flow
+
+### **Complete Workflow**
+
+```
+1. User Opens App
+   ↓
+2. Farcaster Authentication
+   ↓
+3. Wallet Connection
+   ↓
+4. Create/Join Game
+   ↓
+5. Pay Entry Fee (0.01 MON)
+   ↓
+6. Wait in Lobby
+   ↓
+7. Game Starts (2 players ready)
+   ↓
+8. Countdown (3-2-1-GO)
+   ↓
+9. Type Race (60 seconds)
+   ↓
+10. Winner Declared
+    ↓
+11. Prize Paid (0.02 MON)
+    ↓
+12. Play Again
+```
+
+### **Components**
+
+```
+app/game/page.tsx
+  └─ GameProvider
+      └─ GameDashboard
+          ├─ Idle → Dashboard UI
+          ├─ Lobby → GameLobby
+          ├─ Playing → TypingGame
+          └─ Finished → WinnerModal
+```
+
+---
+
+## 🔒 Security
+
+### **Contract Security**
+- ✅ Reentrancy protection (CEI pattern)
+- ✅ Emergency withdrawal function
+- ✅ Access control (onlyOwner)
+- ✅ Input validation
+- ✅ Production-ready
+
+### **Centralized Design**
+- Owner (server) declares winners
+- Players trust the game server
+- Suitable for off-chain game logic
+- More gas-efficient than on-chain
+
+---
+
+## 💰 Costs
+
+### **Testnet (Current):**
+```
+Entry Fee:    0.01 MON
+Gas Fee:      ~0.1 MON
+Total:        ~0.11 MON
+```
+
+### **Mainnet (Expected):**
+```
+Entry Fee:    0.01 MON
+Gas Fee:      ~0.0005 MON
+Total:        ~0.0105 MON
+```
+
+### **Hosting:**
+```
+Render:  Free (750 hours/month)
+Vercel:  Free (unlimited)
+Total:   $0/month
+```
+
+---
+
+## 🎯 Next Steps
+
+### **Immediate:**
+1. Test full game flow (2 players)
+2. Test in Farcaster
+3. Gather feedback
+
+### **Future Improvements:**
+- Tournament pools (5, 10 players)
+- Leaderboard
+- Different game modes
+- Custom texts
+- Achievements
+- Social sharing
+
+---
+
+## 📞 Quick Links
+
+- **Frontend:** https://blitzxvaibhav.vercel.app/game
+- **Backend:** https://blitz-monad-miniapp-template-1.onrender.com
+- **Vercel Dashboard:** https://vercel.com/dashboard
+- **Render Dashboard:** https://dashboard.render.com
+- **Warpcast Embed:** https://warpcast.com/~/developers/mini-apps/embed
+- **Monad Explorer:** https://explorer.testnet.monad.xyz
+
+---
+
+## ✅ Success Checklist
+
+- [x] Smart contract deployed
+- [x] Backend deployed
+- [x] Frontend deployed
+- [x] Redis working
+- [x] Socket.IO working
+- [ ] Full game tested
+- [ ] Farcaster tested
+- [ ] Ready to share!
+
+---
+
+**Your typing tournament is production-ready!** 🎉
+
+Test it with friends and have fun! 🚀

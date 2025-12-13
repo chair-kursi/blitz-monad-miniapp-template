@@ -20,22 +20,31 @@ export function GameLobby() {
         removePlayer,
     } = useGame();
 
-    const { payEntryFee, isPending, isConfirming, isSuccess } = useContract();
+    const { payEntryFee, isPending, isConfirming, isSuccess, isError } = useContract();
     const [copied, setCopied] = useState(false);
     const [hasPaid, setHasPaid] = useState(false);
+    const [paymentAttempted, setPaymentAttempted] = useState(false);
 
-    // Handle payment
+    // Handle payment - only trigger once automatically
     useEffect(() => {
-        if (gameId && !hasPaid && !isPending && !isConfirming) {
+        if (gameId && !hasPaid && !isPending && !isConfirming && !paymentAttempted) {
+            setPaymentAttempted(true);
             payEntryFee(gameId);
         }
-    }, [gameId, hasPaid, isPending, isConfirming, payEntryFee]);
+    }, [gameId, hasPaid, isPending, isConfirming, paymentAttempted, payEntryFee]);
 
     useEffect(() => {
         if (isSuccess) {
             setHasPaid(true);
         }
     }, [isSuccess]);
+
+    // Manual retry function
+    const handleRetryPayment = () => {
+        if (gameId) {
+            payEntryFee(gameId);
+        }
+    };
 
     // Listen for player events
     useEffect(() => {
@@ -159,6 +168,31 @@ export function GameLobby() {
                                 <p className="text-green-400 font-semibold">Payment confirmed!</p>
                                 <p className="text-green-300 text-sm">You're in the game</p>
                             </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {isError && !hasPaid && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-6"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 text-red-400">⚠️</div>
+                                <div>
+                                    <p className="text-red-400 font-semibold">Payment failed or cancelled</p>
+                                    <p className="text-red-300 text-sm">Click retry to try again</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleRetryPayment}
+                                className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                            >
+                                Retry Payment
+                            </button>
                         </div>
                     </motion.div>
                 )}
