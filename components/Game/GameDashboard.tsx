@@ -69,16 +69,22 @@ export function GameDashboard() {
     useEffect(() => {
         if (!socket) return;
 
-        // Backend sends us a gameId to pay for
+        // Backend sends us a gameId
         socket.on('searching_opponent', (data) => {
             console.log('Got game assignment:', data);
             setIsSearching(true);
             setQueueSize(data.queueSize || 0);
 
-            // Store gameId for payment
+            // Store gameId
             if (data.gameId) {
                 setCurrentGameId(data.gameId);
                 setTextToType(data.textToType);
+
+                // SKIP PAYMENT: Auto-mark as paid for testing
+                setTimeout(() => {
+                    setHasPaid(true);
+                    console.log('✅ Auto-marked as paid (payment skipped for testing)');
+                }, 1000);
             }
 
             // If opponent already exists, show them
@@ -113,7 +119,7 @@ export function GameDashboard() {
     }, [socket, user, setGameId, setTextToType, setGameStatus, addPlayer]);
 
     const handlePlayNow = () => {
-        if (socket && authenticated && !isPending && !isConfirming && !isSearching) {
+        if (socket && authenticated && !isSearching) {
             console.log('Requesting game from backend...');
             socket.emit('play_now');
         }
@@ -249,9 +255,16 @@ export function GameDashboard() {
                     <>
                         <Gamepad2 className="w-20 h-20 text-purple-400 mx-auto mb-6" />
                         <h2 className="text-4xl font-bold text-white mb-4">Ready to Play?</h2>
-                        <p className="text-purple-300 text-lg mb-8">
-                            Click to find an opponent! You'll pay 0.01 MON when matched.
-                        </p>
+
+                        {/* Disclaimer */}
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
+                            <p className="text-yellow-300 text-sm font-semibold">
+                                ⚠️ Entry Fee: $5 worth of MON will be deducted when you enter the game
+                            </p>
+                            <p className="text-yellow-200/70 text-xs mt-1">
+                                (Payment currently disabled for testing)
+                            </p>
+                        </div>
 
                         <button
                             onClick={handlePlayNow}
@@ -277,12 +290,12 @@ export function GameDashboard() {
                     </div>
                     <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700 text-center">
                         <Gamepad2 className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-white">0.01</p>
+                        <p className="text-2xl font-bold text-white">$5</p>
                         <p className="text-slate-400 text-sm">MON Entry</p>
                     </div>
                     <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700 text-center">
                         <Zap className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-white">0.02</p>
+                        <p className="text-2xl font-bold text-white">$10</p>
                         <p className="text-slate-400 text-sm">MON Prize</p>
                     </div>
                 </motion.div>
