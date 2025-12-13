@@ -23,16 +23,18 @@ export function GameLobby() {
     const { payEntryFee, isPending, isConfirming, isSuccess, error } = useContract();
     const [copied, setCopied] = useState(false);
     const [hasPaid, setHasPaid] = useState(false);
-    const [paymentAttempted, setPaymentAttempted] = useState(false);
+    const [paymentInitiated, setPaymentInitiated] = useState(false);
 
-    // Handle payment - only trigger once automatically
+    // Handle payment - only trigger once automatically when lobby opens
     useEffect(() => {
-        if (gameId && !hasPaid && !isPending && !isConfirming && !paymentAttempted) {
-            setPaymentAttempted(true);
+        if (gameId && !hasPaid && !paymentInitiated && !isPending && !isConfirming) {
+            setPaymentInitiated(true);
             payEntryFee(gameId);
         }
-    }, [gameId, hasPaid, isPending, isConfirming, paymentAttempted, payEntryFee]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gameId]); // Only depend on gameId to trigger once per game
 
+    // Track successful payment
     useEffect(() => {
         if (isSuccess) {
             setHasPaid(true);
