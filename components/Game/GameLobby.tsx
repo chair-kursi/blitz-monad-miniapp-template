@@ -33,6 +33,15 @@ export function GameLobby() {
         }
     }, [isSuccess]);
 
+    // SKIP PAYMENT: Auto-mark as paid for testing
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setHasPaid(true);
+            console.log('✅ GameLobby: Auto-marked as paid (payment skipped for testing)');
+        }, 500);
+        return () => clearTimeout(timer);
+    }, []);
+
     // Reset submitting on error
     useEffect(() => {
         if (error) {

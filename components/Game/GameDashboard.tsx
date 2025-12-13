@@ -125,21 +125,21 @@ export function GameDashboard() {
         }
     };
 
-    // When we get a gameId from backend, trigger payment
-    useEffect(() => {
-        if (currentGameId && !hasPaid && !isPending && !isConfirming) {
-            console.log('Got gameId from backend, triggering payment:', currentGameId);
-            payEntryFee(currentGameId);
-        }
-    }, [currentGameId, hasPaid, isPending, isConfirming, payEntryFee]);
+    // PAYMENT DISABLED: Commenting out payment triggers
+    // useEffect(() => {
+    //     if (currentGameId && !hasPaid && !isPending && !isConfirming) {
+    //         console.log('Got gameId from backend, triggering payment:', currentGameId);
+    //         payEntryFee(currentGameId);
+    //     }
+    // }, [currentGameId, hasPaid, isPending, isConfirming, payEntryFee]);
 
-    // After payment succeeds, THEN tell backend to create/match game
-    useEffect(() => {
-        if (hasPaid && currentGameId && socket && isSearching) {
-            console.log('Payment confirmed! Notifying backend to create/match game:', currentGameId);
-            socket.emit('payment_confirmed', { gameId: currentGameId });
-        }
-    }, [hasPaid, currentGameId, socket, isSearching]);
+    // PAYMENT DISABLED: Commenting out payment confirmation
+    // useEffect(() => {
+    //     if (hasPaid && currentGameId && socket && isSearching) {
+    //         console.log('Payment confirmed! Notifying backend to create/match game:', currentGameId);
+    //         socket.emit('payment_confirmed', { gameId: currentGameId });
+    //     }
+    // }, [hasPaid, currentGameId, socket, isSearching]);
 
     // Render different states
     if (gameStatus === 'playing' || gameStatus === 'countdown') {

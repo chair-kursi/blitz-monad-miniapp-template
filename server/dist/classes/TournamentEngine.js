@@ -108,6 +108,11 @@ class TournamentEngine {
                         }
                     });
                     console.log(`🎮 Match complete! ${player.username} joined ${opponent.username}'s game`);
+                    // AUTO-START GAME after 2 seconds (giving time for clients to mount lobby)
+                    console.log(`⏳ Starting game ${gameId} in 2 seconds...`);
+                    setTimeout(() => {
+                        this.startGame(gameId);
+                    }, 2000);
                 }
             }
             else {
