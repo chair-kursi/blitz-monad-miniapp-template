@@ -76,11 +76,16 @@ export class TournamentEngine {
 
     private async handleCreateGame(socket: Socket) {
         try {
+            console.log(`🎮 Create game request from socket: ${socket.id}`);
+
             const player = await redisService.getPlayerSession(socket.id);
             if (!player) {
-                socket.emit(SocketEvents.ERROR, { message: "Not authenticated" });
+                console.error(`❌ No player session found for socket: ${socket.id}`);
+                socket.emit(SocketEvents.ERROR, { message: "Not authenticated. Please refresh and try again." });
                 return;
             }
+
+            console.log(`✅ Player session found: ${player.username} (${player.address})`);
 
             const gameId = this.generateGameId();
             const textToType = getRandomText();
@@ -112,7 +117,8 @@ export class TournamentEngine {
             console.log(`🎮 Game created: ${gameId} by ${player.username}`);
         } catch (error) {
             console.error("Create game error:", error);
-            socket.emit(SocketEvents.ERROR, { message: "Failed to create game" });
+            console.error("Error details:", JSON.stringify(error, null, 2));
+            socket.emit(SocketEvents.ERROR, { message: "Failed to create game. Please try again." });
         }
     }
 
