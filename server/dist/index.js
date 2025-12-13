@@ -45,6 +45,7 @@ const TournamentEngine_1 = require("./classes/TournamentEngine");
 const blockchain_service_1 = require("./services/blockchain.service");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+// Updated: 2025-12-13 - Matchmaking with waiting game detection
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 // CORS configuration

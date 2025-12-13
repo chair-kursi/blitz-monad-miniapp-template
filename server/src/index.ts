@@ -8,6 +8,8 @@ import { blockchainService } from "./services/blockchain.service";
 import * as fs from "fs";
 import * as path from "path";
 
+// Updated: 2025-12-13 - Matchmaking with waiting game detection
+
 const app = express();
 const httpServer = createServer(app);
 
