@@ -21,6 +21,12 @@ export function useContract() {
         console.log('🎯 payEntryFee called for gameId:', gameId);
         console.log('📊 Current state - isPending:', isPending, 'hash:', hash);
 
+        // CRITICAL: Prevent double transactions
+        if (isPending || hash) {
+            console.log('⚠️ Transaction already pending, skipping');
+            return;
+        }
+
         try {
             console.log('💳 Calling writeContract...');
             writeContract({
