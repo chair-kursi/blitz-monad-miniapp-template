@@ -145,20 +145,34 @@ export class TournamentEngine {
         console.log(`👤 ${player.username} joined game ${gameId} (${gameState.players.size}/${gameState.maxPlayers})`);
 
         // 5. Check Start Condition
-        if (gameState.players.size === gameState.maxPlayers) {
-            console.log(`🚀 Game ${gameId} is full! Starting game...`);
+        const currentSize = gameState.players.size;
+        const requiredSize = gameState.maxPlayers;
+
+        console.log(`🔍 Checking Game Start Condition for ${gameId}:`);
+        console.log(`   - Current Players: ${currentSize}`);
+        console.log(`   - Required Players: ${requiredSize}`);
+        console.log(`   - Is Full? ${currentSize === requiredSize}`);
+
+        if (currentSize === requiredSize) {
+            console.log(`🚀 Game ${gameId} IS FULL! Initiating auto-start...`);
+
             // AUTO-START GAME after 2 seconds (giving time for clients to mount lobby)
-            console.log(`⏳ Starting game ${gameId} in 2 seconds...`);
+            console.log(`⏳ Scheduling startGame for ${gameId} in 2000ms...`);
             setTimeout(() => {
-                this.startGame(gameId);
+                console.log(`⏰ Time's up! Calling startGame(${gameId}) now!`);
+                this.startGame(gameId).catch(err => console.error("💥 Error starting game:", err));
             }, 2000);
+        } else {
+            console.log(`⏳ Game ${gameId} NOT full yet. Waiting for more players.`);
         }
     }
 
     private async handlePlayNow(socket: Socket) {
         try {
+            console.log(`👉 handlePlayNow from socket ${socket.id}`);
             const player = await redisService.getPlayerSession(socket.id);
             if (!player) {
+                console.error(`❌ handlePlayNow: No player session for ${socket.id}`);
                 socket.emit(SocketEvents.ERROR, { message: "Not authenticated" });
                 return;
             }
@@ -170,10 +184,12 @@ export class TournamentEngine {
                 game => game.status === "waiting" && game.players.size < game.maxPlayers
             );
 
+            console.log(`👀 Found ${waitingGames.length} waiting games`);
+
             if (waitingGames.length > 0) {
                 // JOIN EXISTING GAME
                 const waitingGame = waitingGames[0];
-                console.log(`✅ Found waiting game ${waitingGame.gameId}, ${player.username} will join`);
+                console.log(`✅ Found waiting game ${waitingGame.gameId} (${waitingGame.players.size}/${waitingGame.maxPlayers}), joining...`);
 
                 await this.addPlayerToGame(waitingGame.gameId, player, socket);
 
@@ -181,20 +197,20 @@ export class TournamentEngine {
                 // CREATE NEW GAME
                 const gameId = Date.now().toString();
                 const textToType = getRandomText();
-                console.log(`🆕 Creating new game ${gameId} for ${player.username}`);
+                console.log(`🆕 No waiting games. Creating new game ${gameId} for ${player.username}`);
 
                 const gameState: GameState = {
                     gameId,
                     status: "waiting",
-                    players: new Map(), // Init empty, addPlayerToGame handles addition
+                    players: new Map(), // Init empty
                     maxPlayers: 2,
                     textToType,
                     createdAt: Date.now(),
                 };
 
                 this.games.set(gameId, gameState);
-                // Also save initial state to Redis (empty players map initially)
                 await redisService.saveGameState(gameId, gameState);
+                console.log(`💾 Saved initial game state for ${gameId}`);
 
                 // Add the creator
                 await this.addPlayerToGame(gameId, player, socket);
