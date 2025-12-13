@@ -46,6 +46,7 @@ ENTRY_FEE_MON=0.01
 MAX_PLAYERS_PER_GAME=2
 GAME_DURATION_SECONDS=60
 PORT=3001
+FRONTEND_URL=https://your-app.vercel.app
 ```
 
 2. **Update `server/package.json` scripts:**

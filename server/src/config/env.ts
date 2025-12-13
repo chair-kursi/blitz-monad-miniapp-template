@@ -33,6 +33,7 @@ const envSchema = z.object({
 
     // Server Config
     PORT: z.string().transform(Number).default("3001"),
+    FRONTEND_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

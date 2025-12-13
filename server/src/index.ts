@@ -12,9 +12,14 @@ const app = express();
 const httpServer = createServer(app);
 
 // CORS configuration
+const allowedOrigins = [
+    "http://localhost:3000",
+    env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(
     cors({
-        origin: ["http://localhost:3000", env.NEXT_PUBLIC_URL || ""],
+        origin: allowedOrigins,
         credentials: true,
     })
 );
@@ -24,7 +29,7 @@ app.use(express.json());
 // Socket.IO setup
 const io = new Server(httpServer, {
     cors: {
-        origin: ["http://localhost:3000", env.NEXT_PUBLIC_URL || ""],
+        origin: allowedOrigins,
         credentials: true,
     },
 });

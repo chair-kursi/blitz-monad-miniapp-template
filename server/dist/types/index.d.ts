@@ -1,0 +1,49 @@
+export interface Player {
+    fid: number;
+    username: string;
+    address: string;
+    socketId: string;
+    progress: number;
+    wpm: number;
+    hasPaid: boolean;
+    joinedAt: number;
+}
+export interface GameState {
+    gameId: string;
+    status: "waiting" | "active" | "finished";
+    players: Map<string, Player>;
+    maxPlayers: number;
+    startTime?: number;
+    endTime?: number;
+    winner?: string;
+    textToType: string;
+    createdAt: number;
+}
+export interface TypingProgress {
+    address: string;
+    progress: number;
+    wpm: number;
+    timestamp: number;
+}
+export interface AuthPayload {
+    fid: number;
+    username: string;
+    address: string;
+}
+export declare enum SocketEvents {
+    AUTHENTICATE = "authenticate",
+    JOIN_GAME = "join_game",
+    CREATE_GAME = "create_game",
+    TYPING_PROGRESS = "typing_progress",
+    LEAVE_GAME = "leave_game",
+    AUTHENTICATED = "authenticated",
+    GAME_CREATED = "game_created",
+    GAME_JOINED = "game_joined",
+    GAME_STARTED = "game_started",
+    PLAYER_JOINED = "player_joined",
+    PLAYER_LEFT = "player_left",
+    PROGRESS_UPDATE = "progress_update",
+    GAME_FINISHED = "game_finished",
+    ERROR = "error"
+}
+//# sourceMappingURL=index.d.ts.map
