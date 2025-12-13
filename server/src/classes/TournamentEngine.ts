@@ -86,73 +86,89 @@ export class TournamentEngine {
 
             console.log(`🎮 ${player.username} wants to play`);
 
-            // Emit searching status
-            socket.emit(SocketEvents.SEARCHING_OPPONENT, {
-                queueSize: await matchmakingService.getQueueSize()
-            });
+            // Check if there's a waiting game
+            const waitingGames = Array.from(this.games.values()).filter(
+                game => game.status === "waiting" && game.players.size < game.maxPlayers
+            );
 
-            // Try to find a match
-            const opponent = await matchmakingService.addToQueue(player, socket.id);
+            let gameId: string;
+            let textToType: string;
+            let isJoining = false;
 
-            if (opponent) {
-                // Match found! Create game with both players
-                console.log(`✅ Match found: ${player.username} vs ${opponent.username}`);
+            if (waitingGames.length > 0) {
+                // Join existing game
+                const waitingGame = waitingGames[0];
+                gameId = waitingGame.gameId;
+                textToType = waitingGame.textToType;
+                isJoining = true;
 
-                const gameId = Date.now().toString();
-                const textToType = getRandomText();
+                console.log(`✅ Found waiting game ${gameId}, ${player.username} will join`);
+
+                // Add player to game
+                waitingGame.players.set(player.address, player);
+                this.socketToGame.set(socket.id, gameId);
+                await redisService.saveGameState(gameId, waitingGame);
+
+                // Get opponent info
+                const opponent = Array.from(waitingGame.players.values()).find(
+                    p => p.address !== player.address
+                );
+
+                // Send game info to this player for payment
+                socket.emit(SocketEvents.SEARCHING_OPPONENT, {
+                    gameId,
+                    textToType,
+                    message: "Found a game! Please pay to join.",
+                    opponent: opponent ? {
+                        username: opponent.username,
+                        address: opponent.address,
+                    } : null
+                });
+
+                // Notify opponent that someone is joining
+                if (opponent) {
+                    this.io.to(opponent.socketId).emit(SocketEvents.OPPONENT_FOUND, {
+                        gameId,
+                        textToType,
+                        opponent: {
+                            username: player.username,
+                            address: player.address,
+                        }
+                    });
+                }
+            } else {
+                // Create new game
+                gameId = Date.now().toString();
+                textToType = getRandomText();
+
+                console.log(`🆕 Creating new game ${gameId} for ${player.username}`);
 
                 const gameState: GameState = {
                     gameId,
                     status: "waiting",
-                    players: new Map(),
+                    players: new Map([[player.address, player]]),
                     maxPlayers: 2,
                     textToType,
                     createdAt: Date.now(),
                 };
 
-                // Add both players
-                gameState.players.set(player.address, player);
-                gameState.players.set(opponent.address, {
-                    ...opponent,
-                    progress: 0,
-                    wpm: 0,
-                    hasPaid: false,
-                    joinedAt: Date.now(),
-                });
-
                 this.games.set(gameId, gameState);
                 this.socketToGame.set(socket.id, gameId);
-                this.socketToGame.set(opponent.socketId, gameId);
-
                 await redisService.saveGameState(gameId, gameState);
 
-                // Notify both players
-                socket.emit(SocketEvents.OPPONENT_FOUND, {
+                // Send game info to player for payment
+                socket.emit(SocketEvents.SEARCHING_OPPONENT, {
                     gameId,
                     textToType,
-                    opponent: {
-                        username: opponent.username,
-                        address: opponent.address,
-                    }
+                    message: "New game created! Please pay to start.",
+                    opponent: null
                 });
-
-                this.io.to(opponent.socketId).emit(SocketEvents.OPPONENT_FOUND, {
-                    gameId,
-                    textToType,
-                    opponent: {
-                        username: player.username,
-                        address: player.address,
-                    }
-                });
-
-                console.log(`🎮 Game ${gameId} created with ${player.username} and ${opponent.username}`);
-            } else {
-                // No match yet, player added to queue
-                console.log(`⏳ ${player.username} added to queue, waiting for opponent`);
             }
+
+            console.log(`💰 Sent gameId ${gameId} to ${player.username} for payment`);
         } catch (error) {
             console.error("Play now error:", error);
-            socket.emit(SocketEvents.ERROR, { message: "Failed to find match" });
+            socket.emit(SocketEvents.ERROR, { message: "Failed to find/create game" });
         }
     }
 

@@ -3,7 +3,12 @@ import { APP_URL } from "../../../lib/constants";
 
 export async function GET() {
   const farcasterConfig = {
-    // TODO: Add your own account association
+
+    accountAssociation: {
+      header: "eyJmaWQiOjE1NzA0MjcsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhjMmRlODM1ODFlRWJGMTRCNjNCODhFOGJGN0VkMzJmRjUzMWQzYzZlIn0",
+      payload: "eyJkb21haW4iOiJibGl0enh2YWliYXZLnZlcmNlbC5hcHAifQ",
+      signature: "KOVb7D8Cqu/wYS1LF9+kU4ga91+FMntptTQiGRwkChNR/GphPrJPTYA8+NqdQo0fme3EQTRPfhKMAwA1o7CprBs="
+    },
     frame: {
       version: "1",
       name: "Typing Tournament",

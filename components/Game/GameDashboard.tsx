@@ -63,14 +63,28 @@ export function GameDashboard() {
         }
     }, [isSuccess]);
 
+    const [currentGameId, setCurrentGameId] = useState<string | null>(null);
+
     // Listen for matchmaking events
     useEffect(() => {
         if (!socket) return;
 
+        // Backend sends us a gameId to pay for
         socket.on('searching_opponent', (data) => {
-            console.log('Searching for opponent...', data);
+            console.log('Got game assignment:', data);
             setIsSearching(true);
             setQueueSize(data.queueSize || 0);
+
+            // Store gameId for payment
+            if (data.gameId) {
+                setCurrentGameId(data.gameId);
+                setTextToType(data.textToType);
+            }
+
+            // If opponent already exists, show them
+            if (data.opponent) {
+                setOpponent(data.opponent);
+            }
         });
 
         socket.on('opponent_found', (data) => {
@@ -99,30 +113,27 @@ export function GameDashboard() {
     }, [socket, user, setGameId, setTextToType, setGameStatus, addPlayer]);
 
     const handlePlayNow = () => {
-        if (socket && authenticated && !hasPaid) {
-            // First pay, then matchmake
-            console.log('Starting payment flow...');
-        } else if (socket && authenticated && hasPaid) {
-            // Already paid, start matchmaking
+        if (socket && authenticated && !isPending && !isConfirming && !isSearching) {
+            console.log('Requesting game from backend...');
             socket.emit('play_now');
         }
     };
 
-    const handlePayment = () => {
-        if (!hasPaid && !isPending && !isConfirming) {
-            // Use a temporary game ID for payment
-            const tempGameId = Date.now().toString();
-            payEntryFee(tempGameId);
-        }
-    };
-
-    // After payment success, trigger matchmaking
+    // When we get a gameId from backend, trigger payment
     useEffect(() => {
-        if (hasPaid && socket && authenticated && !isSearching && gameStatus === 'idle') {
-            console.log('Payment confirmed, starting matchmaking...');
-            socket.emit('play_now');
+        if (currentGameId && !hasPaid && !isPending && !isConfirming) {
+            console.log('Got gameId from backend, triggering payment:', currentGameId);
+            payEntryFee(currentGameId);
         }
-    }, [hasPaid, socket, authenticated, isSearching, gameStatus]);
+    }, [currentGameId, hasPaid, isPending, isConfirming, payEntryFee]);
+
+    // After payment succeeds, THEN tell backend to create/match game
+    useEffect(() => {
+        if (hasPaid && currentGameId && socket && isSearching) {
+            console.log('Payment confirmed! Notifying backend to create/match game:', currentGameId);
+            socket.emit('payment_confirmed', { gameId: currentGameId });
+        }
+    }, [hasPaid, currentGameId, socket, isSearching]);
 
     // Render different states
     if (gameStatus === 'playing' || gameStatus === 'countdown') {
@@ -148,12 +159,37 @@ export function GameDashboard() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="bg-slate-800/50 backdrop-blur-sm rounded-3xl p-12 border border-purple-500/30 max-w-md w-full text-center"
                 >
-                    <Loader2 className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-6" />
-                    <h2 className="text-3xl font-bold text-white mb-4">Finding Opponent...</h2>
-                    <p className="text-purple-300 text-lg mb-6">
-                        {queueSize > 0 ? `${queueSize} player(s) in queue` : 'Waiting for players...'}
-                    </p>
-                    <div className="flex items-center justify-center gap-2 text-slate-400">
+                    {isPending || isConfirming ? (
+                        <>
+                            <Loader2 className="w-16 h-16 text-blue-400 animate-spin mx-auto mb-6" />
+                            <h2 className="text-3xl font-bold text-white mb-4">
+                                {isPending && 'Confirm Payment'}
+                                {isConfirming && 'Processing Payment...'}
+                            </h2>
+                            <p className="text-blue-300 text-lg mb-6">
+                                {isPending && 'Please confirm in your wallet'}
+                                {isConfirming && 'Transaction confirming...'}
+                            </p>
+                        </>
+                    ) : hasPaid ? (
+                        <>
+                            <Loader2 className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-6" />
+                            <h2 className="text-3xl font-bold text-white mb-4">Finding Opponent...</h2>
+                            <p className="text-purple-300 text-lg mb-6">
+                                {queueSize > 0 ? `${queueSize} player(s) in queue` : 'Waiting for players...'}
+                            </p>
+                            <p className="text-green-400 text-sm">✅ Payment confirmed</p>
+                        </>
+                    ) : (
+                        <>
+                            <Loader2 className="w-16 h-16 text-purple-400 animate-spin mx-auto mb-6" />
+                            <h2 className="text-3xl font-bold text-white mb-4">Preparing Game...</h2>
+                            <p className="text-purple-300 text-lg mb-6">
+                                Payment will be requested shortly
+                            </p>
+                        </>
+                    )}
+                    <div className="flex items-center justify-center gap-2 text-slate-400 mt-6">
                         <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                         <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -210,42 +246,21 @@ export function GameDashboard() {
                     transition={{ delay: 0.3 }}
                     className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 backdrop-blur-sm rounded-3xl p-12 border border-purple-500/30 text-center"
                 >
-                    {!hasPaid ? (
-                        <>
-                            <Gamepad2 className="w-20 h-20 text-purple-400 mx-auto mb-6" />
-                            <h2 className="text-4xl font-bold text-white mb-4">Ready to Play?</h2>
-                            <p className="text-purple-300 text-lg mb-8">
-                                Pay 0.01 MON entry fee and get matched instantly!
-                            </p>
+                    <>
+                        <Gamepad2 className="w-20 h-20 text-purple-400 mx-auto mb-6" />
+                        <h2 className="text-4xl font-bold text-white mb-4">Ready to Play?</h2>
+                        <p className="text-purple-300 text-lg mb-8">
+                            Click to find an opponent! You'll pay 0.01 MON when matched.
+                        </p>
 
-                            {(isPending || isConfirming) ? (
-                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6 mb-6">
-                                    <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-3" />
-                                    <p className="text-blue-400 font-semibold">
-                                        {isPending && 'Confirm payment in wallet...'}
-                                        {isConfirming && 'Processing payment...'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={handlePayment}
-                                    disabled={!authenticated || isPending || isConfirming}
-                                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold text-2xl py-6 px-12 rounded-2xl shadow-2xl transition-all transform hover:scale-105 disabled:cursor-not-allowed disabled:transform-none"
-                                >
-                                    {isPending || isConfirming ? 'Processing...' : 'Play Now - 0.01 MON'}
-                                </button>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <Zap className="w-20 h-20 text-green-400 mx-auto mb-6" />
-                            <h2 className="text-4xl font-bold text-white mb-4">Payment Confirmed!</h2>
-                            <p className="text-green-300 text-lg mb-8">
-                                Finding you an opponent...
-                            </p>
-                            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto" />
-                        </>
-                    )}
+                        <button
+                            onClick={handlePlayNow}
+                            disabled={!authenticated || isSearching}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold text-2xl py-6 px-12 rounded-2xl shadow-2xl transition-all transform hover:scale-105 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                            {isSearching ? 'Finding Match...' : 'Play Now'}
+                        </button>
+                    </>
                 </motion.div>
 
                 {/* Stats */}
