@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { useFrame } from '@/components/farcaster-provider';
+import { useAccount } from 'wagmi';
 import { useSocket } from '@/hooks/useSocket';
 import { GameLobby } from './GameLobby';
 import { TypingGame } from './TypingGame';
@@ -12,6 +13,7 @@ import { motion } from 'framer-motion';
 
 export function GameDashboard() {
     const { context } = useFrame();
+    const { address } = useAccount();
     const {
         user,
         setUser,
@@ -29,16 +31,16 @@ export function GameDashboard() {
     const [showJoinInput, setShowJoinInput] = useState(false);
     const [joinGameId, setJoinGameId] = useState('');
 
-    // Set user from Farcaster context
+    // Set user from Farcaster context and wagmi account
     useEffect(() => {
-        if (context?.user) {
+        if (context?.user && address) {
             setUser({
                 fid: context.user.fid,
-                username: context.user.username || `User${context.user.fid}`,
-                address: context.user.custody || '0x0000000000000000000000000000000000000000',
+                username: context.user.username || context.user.displayName || `User${context.user.fid}`,
+                address: address,
             });
         }
-    }, [context, setUser]);
+    }, [context, address, setUser]);
 
     // Initialize Socket.IO
     const { socket, connected, authenticated } = useSocket(user);
@@ -76,7 +78,7 @@ export function GameDashboard() {
             setGameStatus('lobby');
 
             // Add all players
-            data.players.forEach((player) => addPlayer(player));
+            data.players.forEach((player: { username: string; address: string; fid?: number }) => addPlayer(player));
         });
 
         return () => {
@@ -168,8 +170,8 @@ export function GameDashboard() {
                             </div>
                             <div className="ml-auto">
                                 <div className={`px-3 py-1 rounded-full text-sm ${authenticated
-                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                    : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                                     }`}>
                                     {authenticated ? 'Connected' : 'Connecting...'}
                                 </div>

@@ -60,7 +60,7 @@ const envSchema = zod_1.z.object({
     GAME_DURATION_SECONDS: zod_1.z.string().transform(Number),
     // Server Config
     PORT: zod_1.z.string().transform(Number).default("3001"),
-    FRONTEND_URL: zod_1.z.string().url().optional(),
+    FRONTEND_URL: zod_1.z.preprocess((val) => (val === "" || val === undefined ? undefined : val), zod_1.z.string().url().optional()),
 });
 let env;
 try {

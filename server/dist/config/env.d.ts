@@ -12,7 +12,7 @@ declare const envSchema: z.ZodObject<{
     MAX_PLAYERS_PER_GAME: z.ZodEffects<z.ZodString, number, string>;
     GAME_DURATION_SECONDS: z.ZodEffects<z.ZodString, number, string>;
     PORT: z.ZodDefault<z.ZodEffects<z.ZodString, number, string>>;
-    FRONTEND_URL: z.ZodOptional<z.ZodString>;
+    FRONTEND_URL: z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>;
 }, "strip", z.ZodTypeAny, {
     UPSTASH_REDIS_REST_URL: string;
     UPSTASH_REDIS_REST_TOKEN: string;
@@ -40,7 +40,7 @@ declare const envSchema: z.ZodObject<{
     GAME_DURATION_SECONDS: string;
     CONTRACT_ADDRESS?: string | undefined;
     PORT?: string | undefined;
-    FRONTEND_URL?: string | undefined;
+    FRONTEND_URL?: unknown;
 }>;
 export type Env = z.infer<typeof envSchema>;
 declare let env: Env;
