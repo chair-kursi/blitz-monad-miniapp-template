@@ -23,16 +23,6 @@ export function GameLobby() {
     const { payEntryFee, isPending, isConfirming, isSuccess, error } = useContract();
     const [copied, setCopied] = useState(false);
     const [hasPaid, setHasPaid] = useState(false);
-    const [paymentInitiated, setPaymentInitiated] = useState(false);
-
-    // Handle payment - only trigger once automatically when lobby opens
-    useEffect(() => {
-        if (gameId && !hasPaid && !paymentInitiated && !isPending && !isConfirming) {
-            setPaymentInitiated(true);
-            payEntryFee(gameId);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [gameId]); // Only depend on gameId to trigger once per game
 
     // Track successful payment
     useEffect(() => {
@@ -41,9 +31,9 @@ export function GameLobby() {
         }
     }, [isSuccess]);
 
-    // Manual retry function
-    const handleRetryPayment = () => {
-        if (gameId) {
+    // Manual payment function
+    const handlePayEntryFee = () => {
+        if (gameId && !hasPaid && !isPending && !isConfirming) {
             payEntryFee(gameId);
         }
     };
@@ -135,8 +125,32 @@ export function GameLobby() {
                     </div>
                 </motion.div>
 
-                {/* Payment Status */}
-                {!hasPaid && (
+                {/* Payment Section */}
+                {!hasPaid && !isPending && !isConfirming && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-6 mb-6"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-purple-400 font-semibold text-lg">Entry Fee Required</p>
+                                <p className="text-purple-300 text-sm">Pay 0.01 MON to join the game</p>
+                            </div>
+                            <button
+                                onClick={handlePayEntryFee}
+                                disabled={error !== null}
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:cursor-not-allowed"
+                            >
+                                Pay Entry Fee
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Payment Processing */}
+                {(isPending || isConfirming) && !hasPaid && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -149,7 +163,6 @@ export function GameLobby() {
                                 <p className="text-blue-400 font-semibold">
                                     {isPending && 'Confirm payment in wallet...'}
                                     {isConfirming && 'Processing payment...'}
-                                    {!isPending && !isConfirming && 'Preparing payment...'}
                                 </p>
                                 <p className="text-blue-300 text-sm">Entry fee: 0.01 MON</p>
                             </div>
@@ -157,6 +170,7 @@ export function GameLobby() {
                     </motion.div>
                 )}
 
+                {/* Payment Success */}
                 {hasPaid && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -174,7 +188,8 @@ export function GameLobby() {
                     </motion.div>
                 )}
 
-                {error && !hasPaid && (
+                {/* Payment Error */}
+                {error && !hasPaid && !isPending && !isConfirming && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -190,7 +205,7 @@ export function GameLobby() {
                                 </div>
                             </div>
                             <button
-                                onClick={handleRetryPayment}
+                                onClick={handlePayEntryFee}
                                 className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-semibold transition-all"
                             >
                                 Retry Payment
