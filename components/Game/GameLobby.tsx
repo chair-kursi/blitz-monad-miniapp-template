@@ -42,9 +42,21 @@ export function GameLobby() {
 
     // Manual payment function
     const handlePayEntryFee = () => {
+        console.log('🔘 Pay button clicked');
+        console.log('📋 State check:', {
+            gameId,
+            hasPaid,
+            isPending,
+            isConfirming,
+            isSubmitting
+        });
+
         if (gameId && !hasPaid && !isPending && !isConfirming && !isSubmitting) {
+            console.log('✅ All checks passed, setting isSubmitting=true');
             setIsSubmitting(true);
             payEntryFee(gameId);
+        } else {
+            console.log('❌ Checks failed, not calling payEntryFee');
         }
     };
 

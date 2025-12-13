@@ -18,7 +18,11 @@ export function useContract() {
             throw new Error('Contract address not configured');
         }
 
+        console.log('🎯 payEntryFee called for gameId:', gameId);
+        console.log('📊 Current state - isPending:', isPending, 'hash:', hash);
+
         try {
+            console.log('💳 Calling writeContract...');
             writeContract({
                 address: CONTRACT_ADDRESS,
                 abi: contractABI,
@@ -26,8 +30,9 @@ export function useContract() {
                 args: [BigInt(gameId)],
                 value: parseEther(ENTRY_FEE),
             });
+            console.log('✅ writeContract called successfully');
         } catch (err) {
-            console.error('Failed to pay entry fee:', err);
+            console.error('❌ Failed to pay entry fee:', err);
             throw err;
         }
     };
