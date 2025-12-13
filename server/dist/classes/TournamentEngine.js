@@ -87,18 +87,18 @@ class TournamentEngine {
                 await redis_service_1.redisService.saveGameState(gameId, waitingGame);
                 // Get opponent info
                 const opponent = Array.from(waitingGame.players.values()).find(p => p.address !== player.address);
-                // Send game info to this player for payment
-                socket.emit(types_1.SocketEvents.SEARCHING_OPPONENT, {
-                    gameId,
-                    textToType,
-                    message: "Found a game! Please pay to join.",
-                    opponent: opponent ? {
-                        username: opponent.username,
-                        address: opponent.address,
-                    } : null
-                });
-                // Notify opponent that someone is joining
+                // BOTH players should get OPPONENT_FOUND to enter lobby
                 if (opponent) {
+                    // Notify this player (second player joining)
+                    socket.emit(types_1.SocketEvents.OPPONENT_FOUND, {
+                        gameId,
+                        textToType,
+                        opponent: {
+                            username: opponent.username,
+                            address: opponent.address,
+                        }
+                    });
+                    // Notify opponent (first player waiting)
                     this.io.to(opponent.socketId).emit(types_1.SocketEvents.OPPONENT_FOUND, {
                         gameId,
                         textToType,
@@ -107,6 +107,7 @@ class TournamentEngine {
                             address: player.address,
                         }
                     });
+                    console.log(`🎮 Match complete! ${player.username} joined ${opponent.username}'s game`);
                 }
             }
             else {
