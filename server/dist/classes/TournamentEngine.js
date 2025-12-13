@@ -61,6 +61,73 @@ class TournamentEngine {
             socket.emit(types_1.SocketEvents.ERROR, { message: "Authentication error" });
         }
     }
+    /**
+     * Centralized method to add a player to a game.
+     * Handles updating state, redis, socket rooms, notifications, and auto-starting.
+     */
+    async addPlayerToGame(gameId, player, socket) {
+        const gameState = this.games.get(gameId);
+        if (!gameState) {
+            throw new Error(`Game ${gameId} not found`);
+        }
+        // 1. Update Game State
+        gameState.players.set(player.address, player);
+        this.socketToGame.set(socket.id, gameId);
+        // 2. Sync with Redis
+        await redis_service_1.redisService.saveGameState(gameId, gameState);
+        // 3. Join Socket Room
+        socket.join(gameId);
+        // 4. Notify Players
+        // Notify the player who just joined
+        socket.emit(types_1.SocketEvents.GAME_JOINED, {
+            gameId: gameId,
+            textToType: gameState.textToType,
+            players: Array.from(gameState.players.values()).map((p) => ({
+                username: p.username,
+                address: p.address,
+            })),
+        });
+        // Notify other players in the room (including the one who just joined, but typically filtered by UI)
+        // or better: "Socket.to(room)" sends to everyone EXCEPT the sender.
+        // "io.to(room)" sends to EVERYONE.
+        // Let's use OPPONENT_FOUND for matchmaking flow consistency if needed, 
+        // OR standard PLAYER_JOINED. 
+        // For unified flow, let's use PLAYER_JOINED for general updates and OPPONENT_FOUND for matchmaking transitions.
+        // Notify everyone else
+        socket.to(gameId).emit(types_1.SocketEvents.PLAYER_JOINED, {
+            username: player.username,
+            address: player.address,
+        });
+        // For matchmaking compatibility (Frontend expects OPPONENT_FOUND to switch to lobby)
+        // We broadcast OPPONENT_FOUND to the room when a 2nd player joins
+        if (gameState.players.size === 2) {
+            const opponent = Array.from(gameState.players.values()).find(p => p.address !== player.address);
+            if (opponent) {
+                // Tell the new joiner about the opponent
+                socket.emit(types_1.SocketEvents.OPPONENT_FOUND, {
+                    gameId,
+                    textToType: gameState.textToType,
+                    opponent: { username: opponent.username, address: opponent.address }
+                });
+                // Tell the waiting player about the new joiner
+                this.io.to(opponent.socketId).emit(types_1.SocketEvents.OPPONENT_FOUND, {
+                    gameId,
+                    textToType: gameState.textToType,
+                    opponent: { username: player.username, address: player.address }
+                });
+            }
+        }
+        console.log(`👤 ${player.username} joined game ${gameId} (${gameState.players.size}/${gameState.maxPlayers})`);
+        // 5. Check Start Condition
+        if (gameState.players.size === gameState.maxPlayers) {
+            console.log(`🚀 Game ${gameId} is full! Starting game...`);
+            // AUTO-START GAME after 2 seconds (giving time for clients to mount lobby)
+            console.log(`⏳ Starting game ${gameId} in 2 seconds...`);
+            setTimeout(() => {
+                this.startGame(gameId);
+            }, 2000);
+        }
+    }
     async handlePlayNow(socket) {
         try {
             const player = await redis_service_1.redisService.getPlayerSession(socket.id);
@@ -71,75 +138,38 @@ class TournamentEngine {
             console.log(`🎮 ${player.username} wants to play`);
             // Check if there's a waiting game
             const waitingGames = Array.from(this.games.values()).filter(game => game.status === "waiting" && game.players.size < game.maxPlayers);
-            let gameId;
-            let textToType;
-            let isJoining = false;
             if (waitingGames.length > 0) {
-                // Join existing game
+                // JOIN EXISTING GAME
                 const waitingGame = waitingGames[0];
-                gameId = waitingGame.gameId;
-                textToType = waitingGame.textToType;
-                isJoining = true;
-                console.log(`✅ Found waiting game ${gameId}, ${player.username} will join`);
-                // Add player to game
-                waitingGame.players.set(player.address, player);
-                this.socketToGame.set(socket.id, gameId);
-                await redis_service_1.redisService.saveGameState(gameId, waitingGame);
-                // Get opponent info
-                const opponent = Array.from(waitingGame.players.values()).find(p => p.address !== player.address);
-                // BOTH players should get OPPONENT_FOUND to enter lobby
-                if (opponent) {
-                    // Notify this player (second player joining)
-                    socket.emit(types_1.SocketEvents.OPPONENT_FOUND, {
-                        gameId,
-                        textToType,
-                        opponent: {
-                            username: opponent.username,
-                            address: opponent.address,
-                        }
-                    });
-                    // Notify opponent (first player waiting)
-                    this.io.to(opponent.socketId).emit(types_1.SocketEvents.OPPONENT_FOUND, {
-                        gameId,
-                        textToType,
-                        opponent: {
-                            username: player.username,
-                            address: player.address,
-                        }
-                    });
-                    console.log(`🎮 Match complete! ${player.username} joined ${opponent.username}'s game`);
-                    // AUTO-START GAME after 2 seconds (giving time for clients to mount lobby)
-                    console.log(`⏳ Starting game ${gameId} in 2 seconds...`);
-                    setTimeout(() => {
-                        this.startGame(gameId);
-                    }, 2000);
-                }
+                console.log(`✅ Found waiting game ${waitingGame.gameId}, ${player.username} will join`);
+                await this.addPlayerToGame(waitingGame.gameId, player, socket);
             }
             else {
-                // Create new game
-                gameId = Date.now().toString();
-                textToType = (0, typing_1.getRandomText)();
+                // CREATE NEW GAME
+                const gameId = Date.now().toString();
+                const textToType = (0, typing_1.getRandomText)();
                 console.log(`🆕 Creating new game ${gameId} for ${player.username}`);
                 const gameState = {
                     gameId,
                     status: "waiting",
-                    players: new Map([[player.address, player]]),
+                    players: new Map(), // Init empty, addPlayerToGame handles addition
                     maxPlayers: 2,
                     textToType,
                     createdAt: Date.now(),
                 };
                 this.games.set(gameId, gameState);
-                this.socketToGame.set(socket.id, gameId);
+                // Also save initial state to Redis (empty players map initially)
                 await redis_service_1.redisService.saveGameState(gameId, gameState);
-                // Send game info to player for payment
+                // Add the creator
+                await this.addPlayerToGame(gameId, player, socket);
+                // Notify creator that we are searching
                 socket.emit(types_1.SocketEvents.SEARCHING_OPPONENT, {
                     gameId,
                     textToType,
-                    message: "New game created! Please pay to start.",
+                    message: "New game created! Waiting for opponent...",
                     opponent: null
                 });
             }
-            console.log(`💰 Sent gameId ${gameId} to ${player.username} for payment`);
         }
         catch (error) {
             console.error("Play now error:", error);
@@ -147,6 +177,8 @@ class TournamentEngine {
         }
     }
     async handleCreateGame(socket) {
+        // This seems redundant with PlayNow but kept for specific 'Create Game' button flows if any.
+        // REFACTOR to use addPlayerToGame if we want to keep it.
         try {
             console.log(`🎮 Create game request from socket: ${socket.id}`);
             const player = await redis_service_1.redisService.getPlayerSession(socket.id);
@@ -161,16 +193,15 @@ class TournamentEngine {
             const gameState = {
                 gameId,
                 status: "waiting",
-                players: new Map([[player.address, player]]),
+                players: new Map(),
                 maxPlayers: env_1.env.MAX_PLAYERS_PER_GAME,
                 textToType,
                 createdAt: Date.now(),
             };
             this.games.set(gameId, gameState);
-            this.socketToGame.set(socket.id, gameId);
             await redis_service_1.redisService.saveGameState(gameId, gameState);
             await redis_service_1.redisService.addActiveGame(gameId);
-            socket.join(gameId);
+            await this.addPlayerToGame(gameId, player, socket);
             socket.emit(types_1.SocketEvents.GAME_CREATED, {
                 gameId,
                 textToType,

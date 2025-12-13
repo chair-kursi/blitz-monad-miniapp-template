@@ -7,6 +7,11 @@ export declare class TournamentEngine {
     constructor(io: Server);
     private setupSocketHandlers;
     private handleAuthenticate;
+    /**
+     * Centralized method to add a player to a game.
+     * Handles updating state, redis, socket rooms, notifications, and auto-starting.
+     */
+    private addPlayerToGame;
     private handlePlayNow;
     private handleCreateGame;
     private handleJoinGame;
