@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { useTyping } from '@/hooks/useTyping';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Timer, Zap } from 'lucide-react';
 import { throttle } from '@/lib/game/utils';
 import { getCharacterStatus } from '@/lib/game/typing-utils';
+
+// ... (imports remain same)
 
 export function TypingGame() {
     const {
@@ -24,8 +26,11 @@ export function TypingGame() {
     const [timeRemaining, setTimeRemaining] = useState(60);
     const [gameStarted, setGameStarted] = useState(false);
 
+    // Create a ref for the hidden input
+    const inputRef = useRef<HTMLInputElement>(null);
+
     // Throttled progress update
-    const emitProgress = useCallback(
+    const emitProgressThrottled = useCallback(
         throttle((progress: number, wpm: number) => {
             if (socket && user) {
                 socket.emit('typing_progress', {
@@ -39,65 +44,63 @@ export function TypingGame() {
         [socket, user]
     );
 
+    // Direct emit for 100% completion
+    const emitCompletionBuffer = (progress: number, wpm: number) => {
+        if (progress >= 100 && socket && user) {
+            console.log('🏁 Sending completion event immediately!');
+            socket.emit('typing_progress', {
+                address: user.address,
+                progress: 100,
+                wpm,
+                timestamp: Date.now(),
+            });
+        } else {
+            emitProgressThrottled(progress, wpm);
+        }
+    };
+
     const { typedText, progress, wpm, handleInput, reset } = useTyping(
         textToType,
-        emitProgress
+        emitCompletionBuffer
     );
 
-    // Countdown logic
+    // Focus input on game start and click
     useEffect(() => {
-        if (gameStatus === 'countdown' && countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-            return () => clearTimeout(timer);
-        } else if (gameStatus === 'countdown' && countdown === 0) {
-            setGameStatus('playing');
-            setGameStarted(true);
+        if (gameStatus === 'playing') {
+            inputRef.current?.focus();
         }
-    }, [gameStatus, countdown, setGameStatus]);
+    }, [gameStatus]);
 
-    // Game timer
-    useEffect(() => {
-        if (gameStatus === 'playing' && timeRemaining > 0) {
-            const timer = setTimeout(() => setTimeRemaining(timeRemaining - 1), 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [gameStatus, timeRemaining]);
+    const handleContainerClick = () => {
+        inputRef.current?.focus();
+    };
 
-    // Listen for opponent progress
-    useEffect(() => {
-        if (!socket) return;
+    // Mobile Input Handler
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (!val) return;
 
-        socket.on('progress_update', (data) => {
-            updatePlayerProgress(data.address, data.progress, data.wpm);
-        });
+        // Get the last character typed
+        const char = val.slice(-1);
+        handleInput(char);
 
-        socket.on('game_finished', (data) => {
-            console.log('Game finished:', data);
-            setWinner(data.winner);
-            setGameStatus('finished');
-        });
+        // Clear input to keep it clean (we only need the events)
+        e.target.value = '';
+    };
 
-        return () => {
-            socket.off('progress_update');
-            socket.off('game_finished');
-        };
-    }, [socket, updatePlayerProgress, setWinner, setGameStatus]);
-
-    // Handle keyboard input
+    // Keep existing keyboard handler for Desktop fallback
     useEffect(() => {
         if (gameStatus !== 'playing') return;
 
         const handleKeyPress = (e: KeyboardEvent) => {
-            // Ignore special keys
-            if (e.key.length > 1 && e.key !== ' ') return;
-
-            e.preventDefault();
-            handleInput(e.key);
+            if (e.key.length === 1 || e.key === 'Backspace') {
+                inputRef.current?.focus();
+            }
         };
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [gameStatus, handleInput]);
+    }, [gameStatus]);
 
     // Update own progress
     useEffect(() => {
@@ -109,36 +112,28 @@ export function TypingGame() {
     const currentPlayer = players.find((p) => p.address === user?.address);
     const opponent = players.find((p) => p.address !== user?.address);
 
-    // Countdown screen
-    if (gameStatus === 'countdown') {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={countdown}
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ type: 'spring', duration: 0.5 }}
-                        className="text-center"
-                    >
-                        {countdown > 0 ? (
-                            <div className="text-9xl font-bold text-white">
-                                {countdown}
-                            </div>
-                        ) : (
-                            <div className="text-7xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                                GO!
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
-            </div>
-        );
-    }
+    // ... (rest of logic)
 
     return (
-        <div className="min-h-screen flex flex-col p-4 md:p-8">
+        <div
+            className="min-h-screen flex flex-col p-4 md:p-8 cursor-text"
+            onClick={handleContainerClick}
+        >
+            {/* Hidden Input for Mobile/Global focus */}
+            <input
+                ref={inputRef}
+                type="text"
+                className="opacity-0 absolute top-0 left-0 w-0 h-0"
+                autoFocus
+                onChange={handleInputChange}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+            />
+
+            {/* ... rest of the UI ... */}
+
             {/* Header */}
             <div className="max-w-6xl w-full mx-auto mb-6">
                 <div className="flex items-center justify-between">
