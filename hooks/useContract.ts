@@ -10,8 +10,13 @@ const ENTRY_FEE = '0.01'; // 0.01 MON
 
 export function useContract() {
     const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
+
+    // CRITICAL FIX: Only watch transaction when hash exists!
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
         hash,
+        query: {
+            enabled: !!hash, // Only poll when we have a hash
+        },
     });
 
     // Use ref to track if transaction is in progress (prevents double calls)
@@ -78,4 +83,3 @@ export function useContract() {
         reset,
     };
 }
-
