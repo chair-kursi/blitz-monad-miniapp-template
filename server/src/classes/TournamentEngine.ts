@@ -3,6 +3,7 @@ import { GameState, Player, SocketEvents, TypingProgress } from "../types";
 import { redisService } from "../services/redis.service";
 import { blockchainService } from "../services/blockchain.service";
 import { authService } from "../services/auth.service";
+import { matchmakingService } from "../services/matchmaking.service";
 import { getRandomText } from "../utils/typing";
 import { env } from "../config/env";
 
@@ -25,6 +26,7 @@ export class TournamentEngine {
             socket.on(SocketEvents.AUTHENTICATE, (data) =>
                 this.handleAuthenticate(socket, data)
             );
+            socket.on(SocketEvents.PLAY_NOW, () => this.handlePlayNow(socket));
             socket.on(SocketEvents.CREATE_GAME, () => this.handleCreateGame(socket));
             socket.on(SocketEvents.JOIN_GAME, (data) =>
                 this.handleJoinGame(socket, data)
@@ -71,6 +73,86 @@ export class TournamentEngine {
         } catch (error) {
             console.error("Authentication error:", error);
             socket.emit(SocketEvents.ERROR, { message: "Authentication error" });
+        }
+    }
+
+    private async handlePlayNow(socket: Socket) {
+        try {
+            const player = await redisService.getPlayerSession(socket.id);
+            if (!player) {
+                socket.emit(SocketEvents.ERROR, { message: "Not authenticated" });
+                return;
+            }
+
+            console.log(`🎮 ${player.username} wants to play`);
+
+            // Emit searching status
+            socket.emit(SocketEvents.SEARCHING_OPPONENT, {
+                queueSize: await matchmakingService.getQueueSize()
+            });
+
+            // Try to find a match
+            const opponent = await matchmakingService.addToQueue(player, socket.id);
+
+            if (opponent) {
+                // Match found! Create game with both players
+                console.log(`✅ Match found: ${player.username} vs ${opponent.username}`);
+
+                const gameId = Date.now().toString();
+                const textToType = getRandomText();
+
+                const gameState: GameState = {
+                    gameId,
+                    status: "waiting",
+                    players: new Map(),
+                    maxPlayers: 2,
+                    textToType,
+                    createdAt: Date.now(),
+                };
+
+                // Add both players
+                gameState.players.set(player.address, player);
+                gameState.players.set(opponent.address, {
+                    ...opponent,
+                    progress: 0,
+                    wpm: 0,
+                    hasPaid: false,
+                    joinedAt: Date.now(),
+                });
+
+                this.games.set(gameId, gameState);
+                this.socketToGame.set(socket.id, gameId);
+                this.socketToGame.set(opponent.socketId, gameId);
+
+                await redisService.saveGameState(gameId, gameState);
+
+                // Notify both players
+                socket.emit(SocketEvents.OPPONENT_FOUND, {
+                    gameId,
+                    textToType,
+                    opponent: {
+                        username: opponent.username,
+                        address: opponent.address,
+                    }
+                });
+
+                this.io.to(opponent.socketId).emit(SocketEvents.OPPONENT_FOUND, {
+                    gameId,
+                    textToType,
+                    opponent: {
+                        username: player.username,
+                        address: player.address,
+                    }
+                });
+
+                console.log(`🎮 Game ${gameId} created with ${player.username} and ${opponent.username}`);
+            } else {
+                // No match yet, player added to queue
+                console.log(`⏳ ${player.username} added to queue, waiting for opponent`);
+            }
+        } catch (error) {
+            console.error("Play now error:", error);
+            socket.emit(SocketEvents.ERROR, { message: "Failed to find match" });
         }
     }
 

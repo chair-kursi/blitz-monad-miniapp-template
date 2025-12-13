@@ -7,6 +7,7 @@ export declare class TournamentEngine {
     constructor(io: Server);
     private setupSocketHandlers;
     private handleAuthenticate;
+    private handlePlayNow;
     private handleCreateGame;
     private handleJoinGame;
     private startGame;

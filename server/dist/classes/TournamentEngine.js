@@ -5,6 +5,7 @@ const types_1 = require("../types");
 const redis_service_1 = require("../services/redis.service");
 const blockchain_service_1 = require("../services/blockchain.service");
 const auth_service_1 = require("../services/auth.service");
+const matchmaking_service_1 = require("../services/matchmaking.service");
 const typing_1 = require("../utils/typing");
 const env_1 = require("../config/env");
 class TournamentEngine {
@@ -21,6 +22,7 @@ class TournamentEngine {
         this.io.on("connection", (socket) => {
             console.log(`🔌 Client connected: ${socket.id}`);
             socket.on(types_1.SocketEvents.AUTHENTICATE, (data) => this.handleAuthenticate(socket, data));
+            socket.on(types_1.SocketEvents.PLAY_NOW, () => this.handlePlayNow(socket));
             socket.on(types_1.SocketEvents.CREATE_GAME, () => this.handleCreateGame(socket));
             socket.on(types_1.SocketEvents.JOIN_GAME, (data) => this.handleJoinGame(socket, data));
             socket.on(types_1.SocketEvents.TYPING_PROGRESS, (data) => this.handleTypingProgress(socket, data));
@@ -58,6 +60,75 @@ class TournamentEngine {
         catch (error) {
             console.error("Authentication error:", error);
             socket.emit(types_1.SocketEvents.ERROR, { message: "Authentication error" });
+        }
+    }
+    async handlePlayNow(socket) {
+        try {
+            const player = await redis_service_1.redisService.getPlayerSession(socket.id);
+            if (!player) {
+                socket.emit(types_1.SocketEvents.ERROR, { message: "Not authenticated" });
+                return;
+            }
+            console.log(`🎮 ${player.username} wants to play`);
+            // Emit searching status
+            socket.emit(types_1.SocketEvents.SEARCHING_OPPONENT, {
+                queueSize: await matchmaking_service_1.matchmakingService.getQueueSize()
+            });
+            // Try to find a match
+            const opponent = await matchmaking_service_1.matchmakingService.addToQueue(player, socket.id);
+            if (opponent) {
+                // Match found! Create game with both players
+                console.log(`✅ Match found: ${player.username} vs ${opponent.username}`);
+                const gameId = Date.now().toString();
+                const textToType = (0, typing_1.getRandomText)();
+                const gameState = {
+                    gameId,
+                    status: "waiting",
+                    players: new Map(),
+                    maxPlayers: 2,
+                    textToType,
+                    createdAt: Date.now(),
+                };
+                // Add both players
+                gameState.players.set(player.address, player);
+                gameState.players.set(opponent.address, {
+                    ...opponent,
+                    progress: 0,
+                    wpm: 0,
+                    hasPaid: false,
+                    joinedAt: Date.now(),
+                });
+                this.games.set(gameId, gameState);
+                this.socketToGame.set(socket.id, gameId);
+                this.socketToGame.set(opponent.socketId, gameId);
+                await redis_service_1.redisService.saveGameState(gameId, gameState);
+                // Notify both players
+                socket.emit(types_1.SocketEvents.OPPONENT_FOUND, {
+                    gameId,
+                    textToType,
+                    opponent: {
+                        username: opponent.username,
+                        address: opponent.address,
+                    }
+                });
+                this.io.to(opponent.socketId).emit(types_1.SocketEvents.OPPONENT_FOUND, {
+                    gameId,
+                    textToType,
+                    opponent: {
+                        username: player.username,
+                        address: player.address,
+                    }
+                });
+                console.log(`🎮 Game ${gameId} created with ${player.username} and ${opponent.username}`);
+            }
+            else {
+                // No match yet, player added to queue
+                console.log(`⏳ ${player.username} added to queue, waiting for opponent`);
+            }
+        }
+        catch (error) {
+            console.error("Play now error:", error);
+            socket.emit(types_1.SocketEvents.ERROR, { message: "Failed to find match" });
         }
     }
     async handleCreateGame(socket) {
