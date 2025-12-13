@@ -6,16 +6,16 @@ export async function GET() {
     // TODO: Add your own account association
     frame: {
       version: "1",
-      name: "Monad Farcaster MiniApp Template",
+      name: "Typing Tournament",
       iconUrl: `${APP_URL}/images/icon.png`,
-      homeUrl: `${APP_URL}`,
+      homeUrl: `${APP_URL}/game`,
       imageUrl: `${APP_URL}/images/feed.png`,
       screenshotUrls: [],
-      tags: ["monad", "farcaster", "miniapp", "template"],
-      primaryCategory: "developer-tools",
-      buttonTitle: "Launch Template",
+      tags: ["game", "typing", "monad", "tournament", "multiplayer"],
+      primaryCategory: "games",
+      buttonTitle: "Play Now",
       splashImageUrl: `${APP_URL}/images/splash.png`,
-      splashBackgroundColor: "#ffffff",
+      splashBackgroundColor: "#0F172A",
       webhookUrl: `${APP_URL}/api/webhook`,
     },
   };
