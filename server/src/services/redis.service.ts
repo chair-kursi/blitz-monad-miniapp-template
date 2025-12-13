@@ -92,6 +92,29 @@ class RedisService {
         if (result === null) return null;
         return result === "1";
     }
+
+    // Generic Redis Operations (for matchmaking)
+    async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+        if (ttl) {
+            await this.redis.set(key, JSON.stringify(value), { ex: ttl });
+        } else {
+            await this.redis.set(key, JSON.stringify(value));
+        }
+    }
+
+    async get<T>(key: string): Promise<T | null> {
+        const data = await this.redis.get(key);
+        if (!data) return null;
+        return data as T;
+    }
+
+    async delete(key: string): Promise<void> {
+        await this.redis.del(key);
+    }
+
+    async keys(pattern: string): Promise<string[]> {
+        return await this.redis.keys(pattern);
+    }
 }
 
 export const redisService = new RedisService();

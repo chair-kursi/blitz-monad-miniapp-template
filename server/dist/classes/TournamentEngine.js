@@ -62,11 +62,14 @@ class TournamentEngine {
     }
     async handleCreateGame(socket) {
         try {
+            console.log(`🎮 Create game request from socket: ${socket.id}`);
             const player = await redis_service_1.redisService.getPlayerSession(socket.id);
             if (!player) {
-                socket.emit(types_1.SocketEvents.ERROR, { message: "Not authenticated" });
+                console.error(`❌ No player session found for socket: ${socket.id}`);
+                socket.emit(types_1.SocketEvents.ERROR, { message: "Not authenticated. Please refresh and try again." });
                 return;
             }
+            console.log(`✅ Player session found: ${player.username} (${player.address})`);
             const gameId = this.generateGameId();
             const textToType = (0, typing_1.getRandomText)();
             const gameState = {
@@ -92,7 +95,8 @@ class TournamentEngine {
         }
         catch (error) {
             console.error("Create game error:", error);
-            socket.emit(types_1.SocketEvents.ERROR, { message: "Failed to create game" });
+            console.error("Error details:", JSON.stringify(error, null, 2));
+            socket.emit(types_1.SocketEvents.ERROR, { message: "Failed to create game. Please try again." });
         }
     }
     async handleJoinGame(socket, data) {

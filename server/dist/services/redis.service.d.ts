@@ -13,6 +13,10 @@ declare class RedisService {
     getActiveGames(): Promise<string[]>;
     cachePaymentVerification(gameId: string, address: string, verified: boolean): Promise<void>;
     getPaymentVerification(gameId: string, address: string): Promise<boolean | null>;
+    set<T>(key: string, value: T, ttl?: number): Promise<void>;
+    get<T>(key: string): Promise<T | null>;
+    delete(key: string): Promise<void>;
+    keys(pattern: string): Promise<string[]>;
 }
 export declare const redisService: RedisService;
 export {};

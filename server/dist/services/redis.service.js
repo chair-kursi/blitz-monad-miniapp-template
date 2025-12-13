@@ -68,6 +68,27 @@ class RedisService {
             return null;
         return result === "1";
     }
+    // Generic Redis Operations (for matchmaking)
+    async set(key, value, ttl) {
+        if (ttl) {
+            await this.redis.set(key, JSON.stringify(value), { ex: ttl });
+        }
+        else {
+            await this.redis.set(key, JSON.stringify(value));
+        }
+    }
+    async get(key) {
+        const data = await this.redis.get(key);
+        if (!data)
+            return null;
+        return data;
+    }
+    async delete(key) {
+        await this.redis.del(key);
+    }
+    async keys(pattern) {
+        return await this.redis.keys(pattern);
+    }
 }
 exports.redisService = new RedisService();
 //# sourceMappingURL=redis.service.js.map

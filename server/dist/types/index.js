@@ -7,12 +7,15 @@ var SocketEvents;
     SocketEvents["AUTHENTICATE"] = "authenticate";
     SocketEvents["JOIN_GAME"] = "join_game";
     SocketEvents["CREATE_GAME"] = "create_game";
+    SocketEvents["PLAY_NOW"] = "play_now";
     SocketEvents["TYPING_PROGRESS"] = "typing_progress";
     SocketEvents["LEAVE_GAME"] = "leave_game";
     // Server -> Client
     SocketEvents["AUTHENTICATED"] = "authenticated";
     SocketEvents["GAME_CREATED"] = "game_created";
     SocketEvents["GAME_JOINED"] = "game_joined";
+    SocketEvents["SEARCHING_OPPONENT"] = "searching_opponent";
+    SocketEvents["OPPONENT_FOUND"] = "opponent_found";
     SocketEvents["GAME_STARTED"] = "game_started";
     SocketEvents["PLAYER_JOINED"] = "player_joined";
     SocketEvents["PLAYER_LEFT"] = "player_left";
