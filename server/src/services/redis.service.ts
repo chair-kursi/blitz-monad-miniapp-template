@@ -24,10 +24,10 @@ class RedisService {
     }
 
     async getGameState(gameId: string): Promise<GameState | null> {
-        const data = await this.redis.get<string>(`game:${gameId}`);
+        const data = await this.redis.get(`game:${gameId}`);
         if (!data) return null;
 
-        const parsed = JSON.parse(data);
+        const parsed = data as any;
         return {
             ...parsed,
             players: new Map(parsed.players),
@@ -49,8 +49,8 @@ class RedisService {
     }
 
     async getPlayerSession(socketId: string): Promise<Player | null> {
-        const data = await this.redis.get<string>(`player:${socketId}`);
-        return data ? JSON.parse(data) : null;
+        const data = await this.redis.get(`player:${socketId}`);
+        return data as Player | null;
     }
 
     async deletePlayerSession(socketId: string): Promise<void> {

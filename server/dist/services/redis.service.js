@@ -25,7 +25,7 @@ class RedisService {
         const data = await this.redis.get(`game:${gameId}`);
         if (!data)
             return null;
-        const parsed = JSON.parse(data);
+        const parsed = data;
         return {
             ...parsed,
             players: new Map(parsed.players),
@@ -42,7 +42,7 @@ class RedisService {
     }
     async getPlayerSession(socketId) {
         const data = await this.redis.get(`player:${socketId}`);
-        return data ? JSON.parse(data) : null;
+        return data;
     }
     async deletePlayerSession(socketId) {
         await this.redis.del(`player:${socketId}`);
