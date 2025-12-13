@@ -1,0 +1,9 @@
+{
+  "contractAddress": "0x90577AFd04F23c783De10FD87956a77FDe5e9792",
+  "entryFee": "100000000000000000",
+  "network": "monad-testnet",
+  "chainId": 10143,
+  "deployedAt": "2025-12-13T07:46:11.593Z",
+  "deployer": "0xad7cd41D31bc72F8952A23F61C5170066570077c",
+  "owner": "0xda856f9f453780a9b6faef0824c12301b5126665"
+}

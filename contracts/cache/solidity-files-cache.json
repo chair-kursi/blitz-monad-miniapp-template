@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/Users/acciojob/Projects/blitz/blitz-monad-miniapp-template/contracts/contracts/TypingTournament.sol": {
+      "lastModificationDate": 1765611894384,
+      "contentHash": "57bfae0dc8992082a909bb7ce68fc272",
+      "sourceName": "contracts/TypingTournament.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "TypingTournament"
+      ]
+    }
+  }
+}
