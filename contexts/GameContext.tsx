@@ -81,7 +81,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const updatePlayerProgress = useCallback((address: string, progress: number, wpm: number) => {
         setPlayers((prev) =>
-            prev.map((p) => (p.address === address ? { ...p, progress, wpm } : p))
+            prev.map((p) => (
+                p.address.toLowerCase() === address.toLowerCase()
+                    ? { ...p, progress, wpm }
+                    : p
+            ))
         );
     }, []);
 

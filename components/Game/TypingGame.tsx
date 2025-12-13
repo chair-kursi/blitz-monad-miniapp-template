@@ -112,6 +112,27 @@ export function TypingGame() {
         inputRef.current?.focus();
     };
 
+    // Listen for opponent progress
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('progress_update', (data) => {
+            console.log('📨 Received progress update:', data);
+            updatePlayerProgress(data.address, data.progress, data.wpm);
+        });
+
+        socket.on('game_finished', (data) => {
+            console.log('Game finished:', data);
+            setWinner(data.winner);
+            setGameStatus('finished');
+        });
+
+        return () => {
+            socket.off('progress_update');
+            socket.off('game_finished');
+        };
+    }, [socket, updatePlayerProgress, setWinner, setGameStatus]);
+
     // Mobile Input Handler
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -146,8 +167,10 @@ export function TypingGame() {
         }
     }, [progress, wpm, user, updatePlayerProgress]);
 
-    const currentPlayer = players.find((p) => p.address === user?.address);
-    const opponent = players.find((p) => p.address !== user?.address);
+    // Case-insensitive comparisons for robustness
+    const normalizedUserAddr = user?.address?.toLowerCase();
+    const currentPlayer = players.find((p) => p.address.toLowerCase() === normalizedUserAddr);
+    const opponent = players.find((p) => p.address.toLowerCase() !== normalizedUserAddr);
 
     // ... (rest of logic)
 
