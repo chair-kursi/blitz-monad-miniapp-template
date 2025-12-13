@@ -64,7 +64,44 @@ export function TypingGame() {
         emitCompletionBuffer
     );
 
+    // Ref for the current character to scroll into view
+    const currentCharRef = useRef<HTMLSpanElement>(null);
+    const textContainerRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to current character
+    useEffect(() => {
+        if (currentCharRef.current && textContainerRef.current) {
+            currentCharRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
+        }
+    }, [typedText.length]); // Scroll whenever text length changes
+
+    // Countdown logic
+    useEffect(() => {
+        if (gameStatus === 'countdown' && countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (gameStatus === 'countdown' && countdown === 0) {
+            setGameStatus('playing');
+            setGameStarted(true);
+        }
+    }, [gameStatus, countdown, setGameStatus]);
+
+    // Game timer
+    useEffect(() => {
+        if (gameStatus === 'playing' && timeRemaining > 0) {
+            const timer = setTimeout(() => setTimeRemaining(timeRemaining - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (gameStatus === 'playing' && timeRemaining === 0) {
+            // Time up! End game? Or just let backend handle it?
+            // Usually backend handles hard stop, but frontend should show 0s.
+        }
+    }, [gameStatus, timeRemaining]);
+
     // Focus input on game start and click
+
     useEffect(() => {
         if (gameStatus === 'playing') {
             inputRef.current?.focus();
@@ -218,20 +255,26 @@ export function TypingGame() {
             </div>
 
             {/* Typing Area */}
-            <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col">
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
-                    <div className="text-3xl leading-relaxed font-mono">
+            <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col min-h-0">
+                <div
+                    ref={textContainerRef}
+                    className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700 overflow-y-auto max-h-[40vh] md:max-h-none scroll-smooth"
+                >
+                    <div className="text-2xl md:text-3xl leading-relaxed font-mono">
                         {textToType.split('').map((char, index) => {
                             const status = getCharacterStatus(char, index, typedText, textToType);
+                            const isCurrent = status === 'current';
+
                             return (
                                 <span
                                     key={index}
+                                    ref={isCurrent ? currentCharRef : null}
                                     className={`
-                    ${status === 'correct' ? 'text-green-400' : ''}
-                    ${status === 'incorrect' ? 'text-red-400 bg-red-400/20' : ''}
-                    ${status === 'current' ? 'text-white bg-blue-500/30 border-b-2 border-blue-400' : ''}
-                    ${status === 'pending' ? 'text-slate-500' : ''}
-                  `}
+                                        ${status === 'correct' ? 'text-green-400' : ''}
+                                        ${status === 'incorrect' ? 'text-red-400 bg-red-400/20' : ''}
+                                        ${status === 'current' ? 'text-white bg-blue-500/30 border-b-2 border-blue-400' : ''}
+                                        ${status === 'pending' ? 'text-slate-500' : ''}
+                                    `}
                                 >
                                     {char}
                                 </span>
