@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import contractABI from '@/lib/contract-abi.json';
@@ -8,27 +9,38 @@ const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string
 const ENTRY_FEE = '0.01'; // 0.01 MON
 
 export function useContract() {
-    const { writeContract, data: hash, isPending, error } = useWriteContract();
+    const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
         hash,
     });
 
-    const payEntryFee = async (gameId: string) => {
+    // Use ref to track if transaction is in progress (prevents double calls)
+    const isProcessingRef = useRef(false);
+
+    const payEntryFee = (gameId: string) => {
         if (!CONTRACT_ADDRESS) {
-            throw new Error('Contract address not configured');
-        }
-
-        console.log('🎯 payEntryFee called for gameId:', gameId);
-        console.log('📊 Current state - isPending:', isPending, 'hash:', hash);
-
-        // CRITICAL: Prevent double transactions
-        if (isPending || hash) {
-            console.log('⚠️ Transaction already pending, skipping');
+            console.error('❌ Contract address not configured');
             return;
         }
 
+        // CRITICAL: Check ref first (immediate, not stale)
+        if (isProcessingRef.current) {
+            console.log('⚠️ Transaction already in progress (ref check)');
+            return;
+        }
+
+        // Check wagmi state
+        if (isPending || hash) {
+            console.log('⚠️ Transaction already pending (wagmi check)');
+            return;
+        }
+
+        console.log('✅ Starting transaction for gameId:', gameId);
+
+        // Set ref IMMEDIATELY before async call
+        isProcessingRef.current = true;
+
         try {
-            console.log('💳 Calling writeContract...');
             writeContract({
                 address: CONTRACT_ADDRESS,
                 abi: contractABI,
@@ -36,12 +48,25 @@ export function useContract() {
                 args: [BigInt(gameId)],
                 value: parseEther(ENTRY_FEE),
             });
-            console.log('✅ writeContract called successfully');
+            console.log('💳 Transaction submitted');
         } catch (err) {
-            console.error('❌ Failed to pay entry fee:', err);
+            console.error('❌ Transaction failed:', err);
+            isProcessingRef.current = false; // Reset on error
             throw err;
         }
     };
+
+    // Reset ref when transaction completes
+    if (isSuccess && isProcessingRef.current) {
+        console.log('✅ Transaction successful, resetting ref');
+        isProcessingRef.current = false;
+    }
+
+    // Reset ref on error
+    if (error && isProcessingRef.current) {
+        console.log('❌ Transaction error, resetting ref');
+        isProcessingRef.current = false;
+    }
 
     return {
         payEntryFee,
@@ -50,5 +75,7 @@ export function useContract() {
         isSuccess,
         error,
         hash,
+        reset,
     };
 }
+
