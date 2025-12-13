@@ -23,17 +23,27 @@ export function GameLobby() {
     const { payEntryFee, isPending, isConfirming, isSuccess, error } = useContract();
     const [copied, setCopied] = useState(false);
     const [hasPaid, setHasPaid] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Track successful payment
     useEffect(() => {
         if (isSuccess) {
             setHasPaid(true);
+            setIsSubmitting(false);
         }
     }, [isSuccess]);
 
+    // Reset submitting on error
+    useEffect(() => {
+        if (error) {
+            setIsSubmitting(false);
+        }
+    }, [error]);
+
     // Manual payment function
     const handlePayEntryFee = () => {
-        if (gameId && !hasPaid && !isPending && !isConfirming) {
+        if (gameId && !hasPaid && !isPending && !isConfirming && !isSubmitting) {
+            setIsSubmitting(true);
             payEntryFee(gameId);
         }
     };
@@ -140,10 +150,10 @@ export function GameLobby() {
                             </div>
                             <button
                                 onClick={handlePayEntryFee}
-                                disabled={error !== null}
+                                disabled={error !== null || isSubmitting}
                                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:cursor-not-allowed"
                             >
-                                Pay Entry Fee
+                                {isSubmitting ? 'Processing...' : 'Pay Entry Fee'}
                             </button>
                         </div>
                     </motion.div>
