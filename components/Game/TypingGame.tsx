@@ -12,6 +12,7 @@ import { getCharacterStatus } from '@/lib/game/typing-utils';
 
 export function TypingGame() {
     const {
+        gameId,
         textToType,
         players,
         user,
@@ -32,8 +33,9 @@ export function TypingGame() {
     // Throttled progress update
     const emitProgressThrottled = useCallback(
         throttle((progress: number, wpm: number) => {
-            if (socket && user) {
+            if (socket && user && gameId) {
                 socket.emit('typing_progress', {
+                    gameId,
                     address: user.address,
                     progress,
                     wpm,
@@ -41,14 +43,15 @@ export function TypingGame() {
                 });
             }
         }, 500),
-        [socket, user]
+        [socket, user, gameId]
     );
 
     // Direct emit for 100% completion
     const emitCompletionBuffer = (progress: number, wpm: number) => {
-        if (progress >= 100 && socket && user) {
+        if (progress >= 100 && socket && user && gameId) {
             console.log('🏁 Sending completion event immediately!');
             socket.emit('typing_progress', {
+                gameId,
                 address: user.address,
                 progress: 100,
                 wpm,

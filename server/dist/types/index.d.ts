@@ -20,6 +20,7 @@ export interface GameState {
     createdAt: number;
 }
 export interface TypingProgress {
+    gameId: string;
     address: string;
     progress: number;
     wpm: number;

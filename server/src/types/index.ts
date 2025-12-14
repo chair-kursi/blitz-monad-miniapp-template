@@ -22,6 +22,7 @@ export interface GameState {
 }
 
 export interface TypingProgress {
+    gameId: string; // NEW: Required for stateless updates
     address: string;
     progress: number; // 0-100
     wpm: number;
